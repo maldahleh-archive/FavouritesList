@@ -6,12 +6,13 @@
 //  Copyright © 2018 Mohammed Al-Dahleh. All rights reserved.
 //
 
+import CoreData
 import UIKit
 
 class ViewController: UIViewController {
     @IBOutlet weak var tableView: UITableView!
     
-    var names: [String] = []
+    var people: [NSManagedObject] = []
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -32,7 +33,7 @@ class ViewController: UIViewController {
                     return
             }
                                         
-            self.names.append(nameToSave)
+            self.save(name: nameToSave)
             self.tableView.reloadData()
         }
         
@@ -45,19 +46,39 @@ class ViewController: UIViewController {
         
         present(alert, animated: true)
     }
+    
+    func save(name: String) {
+        guard let appDelegate = UIApplication.shared.delegate as? AppDelegate else {
+                return
+        }
+        
+        let managedContext = appDelegate.persistentContainer.viewContext
+        let entity = NSEntityDescription.entity(forEntityName: "Person", in: managedContext)!
+        let person = NSManagedObject(entity: entity, insertInto: managedContext)
+        
+        person.setValue(name, forKeyPath: "name")
+        
+        do {
+            try managedContext.save()
+            people.append(person)
+        } catch let error as NSError {
+            print("Could not save. \(error), \(error.userInfo)")
+        }
+    }
 }
 
 // MARK: - UITableViewDataSource
 extension ViewController: UITableViewDataSource {
     func tableView(_ tableView: UITableView,
                    numberOfRowsInSection section: Int) -> Int {
-        return names.count
+        return people.count
     }
     
     func tableView(_ tableView: UITableView,
                    cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-            let cell = tableView.dequeueReusableCell(withIdentifier: "Cell", for: indexPath)
-            cell.textLabel?.text = names[indexPath.row]
-            return cell
+        let person = people[indexPath.row]
+        let cell = tableView.dequeueReusableCell(withIdentifier: "Cell", for: indexPath)
+        cell.textLabel?.text = person.value(forKeyPath: "name") as? String
+        return cell
     }
 }
